@@ -107,6 +107,11 @@ jobs:
             - name: Check Git Commit Messages
               id: git_check
               run: |
+                  # Skip completely for the upstream repository - no grading report
+                  if [ "${GITHUB_REPOSITORY}" = "unnc-aim/aim-cpp-2526-coursework" ]; then
+                    exit 0
+                  fi
+
                   echo "检查所有提交信息格式..."
                   echo ""
 
@@ -279,6 +284,11 @@ jobs:
               run: |
                   set -eo pipefail
 
+                  # Skip completely for the upstream repository - no grading report
+                  if [ "${GITHUB_REPOSITORY}" = "unnc-aim/aim-cpp-2526-coursework" ]; then
+                    exit 0
+                  fi
+
                   echo "" >> "$GITHUB_STEP_SUMMARY"
                   echo "## Grading Report" >> "$GITHUB_STEP_SUMMARY"
                   echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -354,11 +364,7 @@ jobs:
                     echo "" >> "$GITHUB_STEP_SUMMARY"
                   fi
 
-                  echo "Additional Notes:" >> "$GITHUB_STEP_SUMMARY"
-                  echo "  - Manual review may deduct additional points (-5 per obvious question)" >> "$GITHUB_STEP_SUMMARY"
-                  echo "  - To fix git history: use 'git rebase -i'" >> "$GITHUB_STEP_SUMMARY"
-                  echo "  - Git Message Regulation: github.com/unnc-aim/#14-git-message-regulation" >> "$GITHUB_STEP_SUMMARY"
-                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "## Evaluation:" >> "$GITHUB_STEP_SUMMARY"
 
                   if [ $FINAL_SCORE -ge 95 ]; then
                     echo "Excellent! Nearly perfect code!" >> "$GITHUB_STEP_SUMMARY"
