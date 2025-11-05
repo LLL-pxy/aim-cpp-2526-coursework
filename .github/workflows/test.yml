@@ -179,12 +179,12 @@ jobs:
         continue-on-error: true
         run: |
           echo "Checking code format..."
-          python3 check_format.py Song.cpp > format_result.txt 2>&1
+          python3 check_format.py Song.cpp > format_result.txt 2>&1 || true
           FORMAT_EXIT_CODE=$?
 
           cat format_result.txt
 
-          FORMAT_DEDUCTION=$(grep "总扣分:" format_result.txt | grep -oE '[0-9]+' || echo "0")
+          FORMAT_DEDUCTION=$(grep "^扣分:" format_result.txt | grep -oE '[0-9-]+' | sed 's/^-//' || echo "0")
 
           echo "format_deduction=$FORMAT_DEDUCTION" >> $GITHUB_OUTPUT
 
@@ -193,7 +193,7 @@ jobs:
             echo "Code format check passed"
           else
             echo "format_status=fail" >> $GITHUB_OUTPUT
-            echo "Code format check found issues"
+            echo "Code format check found issues - $FORMAT_DEDUCTION points deducted"
           fi
 
       - name: Build Project
@@ -211,14 +211,7 @@ jobs:
             echo "Build successful"
           else
             echo "build_status=fail" >> $GITHUB_OUTPUT
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "## Build Failed" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "❌ **CRITICAL FAILURE: Build failed**" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Final Score: 0 / 100**" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Assignment failed due to compilation errors." >> "$GITHUB_STEP_SUMMARY"
+            echo "Build failed"
             exit 1
           fi
 
@@ -268,7 +261,7 @@ jobs:
           fi
 
       - name: Generate Grading Report
-        if: steps.should_skip.outputs.skip == 'false' && steps.file_check.outputs.file_check == 'pass' && steps.build.outputs.build_status == 'pass'
+        if: steps.should_skip.outputs.skip == 'false' && steps.file_check.outputs.file_check == 'pass'
         shell: bash
         run: |
           set -eo pipefail
@@ -276,6 +269,23 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "## Grading Report" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Check for build failure first
+          BUILD_STATUS="${{ steps.build.outputs.build_status }}"
+          if [ "$BUILD_STATUS" = "fail" ]; then
+            echo "==========================================" >> "$GITHUB_STEP_SUMMARY"
+            echo "  MiniDJ Assignment Grading Report" >> "$GITHUB_STEP_SUMMARY"
+            echo "==========================================" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ **CRITICAL FAILURE: Build failed**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Final Score: 0 / 100**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Assignment failed due to compilation errors." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "==========================================" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
           # Get results from previous steps
           GIT_DEDUCTION="${{ steps.git_check.outputs.git_deduction }}"
